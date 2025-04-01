@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { viewGSTINs } from '../store/action.js';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -16,9 +17,20 @@ const Dashboard = () => {
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState('');
+  const [selectedFormat, setSelectedFormat] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewData, setPreviewData] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const fileFormats = [
+    { id: 'GSTR1', name: 'GSTR-1' },
+    { id: 'GSTR3B', name: 'GSTR-3B' },
+    { id: 'GSTR9', name: 'GSTR-9' },
+    { id: 'GSTR9C', name: 'GSTR-9C' }
+  ];
 
   useEffect(() => {
-    dispatch(viewGSTINs()); // Fetch GSTINs when the component mounts
+    dispatch(viewGSTINs());
   }, [dispatch]);
 
   useEffect(() => {
@@ -31,7 +43,7 @@ const Dashboard = () => {
           setDueMonth(data.dueMonth);
         } catch (error) {
           console.error('Error fetching due month:', error);
-          setDueMonth(''); // Reset due month on error
+          setDueMonth('');
         }
       }
     };
@@ -41,13 +53,55 @@ const Dashboard = () => {
 
   const handleGstinChange = (e) => {
     setSelectedGstin(e.target.value);
-    setError(''); // Clear any previous errors
-    setShowOtpInput(false); // Reset OTP input visibility
-    setOtp(''); // Clear OTP
+    setError('');
+    setShowOtpInput(false);
+    setOtp('');
+    setSelectedFormat('');
+    setSelectedFile(null);
+    setPreviewData(null);
+    setShowPreview(false);
+  };
+
+  const handleFormatChange = (e) => {
+    setSelectedFormat(e.target.value);
+    setSelectedFile(null);
+    setPreviewData(null);
+    setShowPreview(false);
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setError('');
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = event.target.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        // Take first 5 rows for preview
+        const preview = jsonData.slice(0, 5);
+        setPreviewData(preview);
+        setShowPreview(true);
+      };
+      reader.readAsBinaryString(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      setError('Error reading file. Please try again.');
+    }
   };
 
   const handleFileNow = async () => {
-    if (!selectedGstin) return;
+    if (!selectedGstin || !selectedFormat || !selectedFile) {
+      setError('Please select GSTIN, format, and upload file');
+      return;
+    }
 
     setIsLoading(true);
     setError('');
@@ -59,7 +113,7 @@ const Dashboard = () => {
       
       if (response.data.message) {
         setShowOtpInput(true);
-        setEmail(response.data.email || ''); // Store email if provided in response
+        setEmail(response.data.email || '');
       } else {
         setError('Failed to generate OTP');
       }
@@ -81,13 +135,20 @@ const Dashboard = () => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:5001/api/filling/verify-otp', {
-        otp,
-        email
+      const formData = new FormData();
+      formData.append('otp', otp);
+      formData.append('email', email);
+      formData.append('file', selectedFile);
+      formData.append('gstin', selectedGstin);
+      formData.append('format', selectedFormat);
+
+      const response = await axios.post('http://localhost:5001/api/filling/verify-otp', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (response.data.message === 'OTP verified successfully!') {
-        // Navigate to filing page with selected GSTIN
         navigate(`/filing/${selectedGstin}`);
       } else {
         setError('Invalid OTP');
@@ -151,13 +212,64 @@ const Dashboard = () => {
                 </select>
               </div>
 
+              {selectedGstin && (
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Select File Format</label>
+                  <select
+                    value={selectedFormat}
+                    onChange={handleFormatChange}
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">Select format</option>
+                    {fileFormats.map((format) => (
+                      <option key={format.id} value={format.id}>
+                        {format.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {selectedFormat && (
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Upload File</label>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileChange}
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+              )}
+
+              {showPreview && previewData && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">File Preview</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {previewData.map((row, rowIndex) => (
+                          <tr key={rowIndex}>
+                            {row.map((cell, cellIndex) => (
+                              <td key={cellIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {error && (
                 <div className="text-red-500 text-sm mt-2">
                   {error}
                 </div>
               )}
 
-              {selectedGstin && !showOtpInput && (
+              {selectedGstin && selectedFormat && selectedFile && !showOtpInput && (
                 <button
                   onClick={handleFileNow}
                   disabled={isLoading}
