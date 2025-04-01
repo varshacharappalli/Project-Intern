@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addGSTIN,viewGSTINs } from '../store/action.js';
+import { useNavigate } from 'react-router-dom';
+import { addGSTIN, viewGSTINs } from '../store/action.js';
 
 
 const GSTIN = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const gstins = useSelector((state) => state.gstinState.gstins);
   const error = useSelector((state) => state.gstinState.error);
 
@@ -50,7 +52,10 @@ const GSTIN = () => {
           <img src="/api/placeholder/120/32" alt="FinCorpX Logo" className="mb-8" />
         </div>
         <div className="space-y-2">
-          <div className="flex items-center p-2 text-gray-500 hover:bg-gray-100 rounded">
+          <div 
+            className="flex items-center p-2 text-gray-500 hover:bg-gray-100 rounded cursor-pointer"
+            onClick={() => navigate('/dashboard')}
+          >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
             </svg>
@@ -184,3 +189,4 @@ const GSTIN = () => {
 };
 
 export default GSTIN;
+

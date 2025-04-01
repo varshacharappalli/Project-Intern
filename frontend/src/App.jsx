@@ -8,12 +8,11 @@ function App() {
   return (
     <>
       <Provider store={store}>
-      <Routes>
-        <Route path="/GSTIN" element={<GSTIN />} />
-        <Route path="/dashboard" element={<Dashboard />} /> 
-      </Routes>
+        <Routes>
+          <Route path="/" element={<GSTIN />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Routes>
       </Provider>
-      
     </>
   );
 }
