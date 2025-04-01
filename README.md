@@ -130,35 +130,4 @@ project-intern/
     └── package.json
 ```
 
-## Getting Started
-
-1. Clone the repository
-2. Install dependencies for both frontend and backend:
-   ```bash
-   # Frontend
-   cd frontend
-   npm install
-
-   # Backend
-   cd backend
-   npm install
-   ```
-3. Set up environment variables in backend/.env
-4. Start the development servers:
-   ```bash
-   # Frontend
-   npm run dev
-
-   # Backend
-   npm start
-   ```
-
-## Features
-
-- GSTIN Management
-- OTP Generation and Verification
-- Multiple GST Return Format Support
-- Excel File Upload and Preview
-- Due Date Tracking
-- Secure Authentication
 
