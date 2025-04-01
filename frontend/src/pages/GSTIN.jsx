@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { addGSTIN,viewGSTINs } from '../store/action.js';
+
 
 const GSTIN = () => {
+  const dispatch = useDispatch();
+  const gstins = useSelector((state) => state.gstin.gstins);
+  const error = useSelector((state) => state.gstin.error);
+
+
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [gstins, setGstins] = useState([
-  ]);
-  
   const [newGstin, setNewGstin] = useState({
     name: '',
     gstin: '',
@@ -17,7 +23,7 @@ const GSTIN = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewGstin({ ...newGstin, [name]: value });
-    
+
     // Automatically extract state code from GSTIN
     if (name === 'gstin' && value.length >= 2) {
       setNewGstin(prev => ({ ...prev, stateCode: value.substring(0, 2) }));
@@ -26,17 +32,15 @@ const GSTIN = () => {
 
   const handleAddGstin = () => {
     if (newGstin.name && newGstin.gstin) {
-      setGstins([...gstins, {
-        id: gstins.length + 1,
-        name: newGstin.name,
-        gstin: newGstin.gstin,
-        stateCode: newGstin.stateCode,
-        lastReconciled: 'Unreconciled'
-      }]);
+      dispatch(addGSTIN(newGstin.name, newGstin.gstin));
       setNewGstin({ name: '', gstin: '', stateCode: '' });
       closeModal();
     }
   };
+
+  useEffect(() => {
+    dispatch(viewGSTINs()); // Fetch GSTINs when the component mounts
+  }, [dispatch]);
 
   return (
     <div className="flex h-screen bg-white">
@@ -175,8 +179,6 @@ const GSTIN = () => {
           </div>
         </div>
       )}
-
-      
     </div>
   );
 };
