@@ -1,5 +1,5 @@
 import express from "express";
-import { generateOtp, verifyOtp, initiateGSTFiling } from "../routes_controllers/verification.controller.js";
+import { generateOtp, verifyOtp} from "../routes_controllers/verification.controller.js";
 
 const verificationRouter = express.Router();
 

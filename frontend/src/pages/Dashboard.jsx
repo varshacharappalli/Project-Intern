@@ -12,6 +12,10 @@ const Dashboard = () => {
   const [dueMonth, setDueMonth] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     dispatch(viewGSTINs()); // Fetch GSTINs when the component mounts
@@ -38,6 +42,8 @@ const Dashboard = () => {
   const handleGstinChange = (e) => {
     setSelectedGstin(e.target.value);
     setError(''); // Clear any previous errors
+    setShowOtpInput(false); // Reset OTP input visibility
+    setOtp(''); // Clear OTP
   };
 
   const handleFileNow = async () => {
@@ -47,22 +53,50 @@ const Dashboard = () => {
     setError('');
 
     try {
-      const response = await axios.post(`http://localhost:5000/api/verification/filing/${selectedGstin}`);
+      const response = await axios.post('http://localhost:5001/api/filling/generate-otp', {
+        gstin: selectedGstin
+      });
       
-      if (response.data.token) {
-        // Store the token in localStorage or your preferred state management solution
-        localStorage.setItem('whitebooksToken', response.data.token);
-        
+      if (response.data.message) {
+        setShowOtpInput(true);
+        setEmail(response.data.email || ''); // Store email if provided in response
+      } else {
+        setError('Failed to generate OTP');
+      }
+    } catch (error) {
+      console.error('Error generating OTP:', error);
+      setError(error.response?.data?.error || 'Failed to generate OTP');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp) {
+      setError('Please enter OTP');
+      return;
+    }
+
+    setIsVerifying(true);
+    setError('');
+
+    try {
+      const response = await axios.post('http://localhost:5001/api/filling/verify-otp', {
+        otp,
+        email
+      });
+
+      if (response.data.message === 'OTP verified successfully!') {
         // Navigate to filing page with selected GSTIN
         navigate(`/filing/${selectedGstin}`);
       } else {
-        setError('Failed to initiate filing process');
+        setError('Invalid OTP');
       }
     } catch (error) {
-      console.error('Error initiating filing:', error);
-      setError(error.response?.data?.message || 'Failed to initiate filing process');
+      console.error('Error verifying OTP:', error);
+      setError(error.response?.data?.error || 'Failed to verify OTP');
     } finally {
-      setIsLoading(false);
+      setIsVerifying(false);
     }
   };
 
@@ -123,7 +157,7 @@ const Dashboard = () => {
                 </div>
               )}
 
-              {selectedGstin && (
+              {selectedGstin && !showOtpInput && (
                 <button
                   onClick={handleFileNow}
                   disabled={isLoading}
@@ -131,8 +165,32 @@ const Dashboard = () => {
                     isLoading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  {isLoading ? 'Processing...' : `File Now ${dueMonth ? `- Due for ${dueMonth}` : ''}`}
+                  {isLoading ? 'Generating OTP...' : `File Now ${dueMonth ? `- Due for ${dueMonth}` : ''}`}
                 </button>
+              )}
+
+              {showOtpInput && (
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Enter OTP</label>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="Enter OTP sent to your email"
+                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                  <button
+                    onClick={handleVerifyOtp}
+                    disabled={isVerifying}
+                    className={`w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-md ${
+                      isVerifying ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {isVerifying ? 'Verifying...' : 'Verify OTP'}
+                  </button>
+                </div>
               )}
             </div>
           </div>
