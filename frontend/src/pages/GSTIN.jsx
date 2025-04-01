@@ -5,8 +5,8 @@ import { addGSTIN,viewGSTINs } from '../store/action.js';
 
 const GSTIN = () => {
   const dispatch = useDispatch();
-  const gstins = useSelector((state) => state.gstin.gstins);
-  const error = useSelector((state) => state.gstin.error);
+  const gstins = useSelector((state) => state.gstinState.gstins);
+  const error = useSelector((state) => state.gstinState.error);
 
 
 
@@ -102,13 +102,13 @@ const GSTIN = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {gstins.map((gstin) => (
-                  <tr key={gstin.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gstin.name}</td>
+                  <tr key={gstin._id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gstin.gstUsername}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{gstin.gstin}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{gstin.stateCode}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-400">
-                        {gstin.lastReconciled}
+                        Never
                       </span>
                     </td>
                   </tr>
