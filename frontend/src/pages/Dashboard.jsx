@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { viewGSTINs } from '../store/action.js';
+import axios from 'axios';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -9,6 +10,8 @@ const Dashboard = () => {
   const gstins = useSelector((state) => state.gstinState.gstins);
   const [selectedGstin, setSelectedGstin] = useState('');
   const [dueMonth, setDueMonth] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     dispatch(viewGSTINs()); // Fetch GSTINs when the component mounts
@@ -34,11 +37,33 @@ const Dashboard = () => {
 
   const handleGstinChange = (e) => {
     setSelectedGstin(e.target.value);
+    setError(''); // Clear any previous errors
   };
 
-  const handleFileNow = () => {
-    // Navigate to filing page with selected GSTIN
-    navigate(`/filing/${selectedGstin}`);
+  const handleFileNow = async () => {
+    if (!selectedGstin) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.post(`http://localhost:5000/api/verification/filing/${selectedGstin}`);
+      
+      if (response.data.token) {
+        // Store the token in localStorage or your preferred state management solution
+        localStorage.setItem('whitebooksToken', response.data.token);
+        
+        // Navigate to filing page with selected GSTIN
+        navigate(`/filing/${selectedGstin}`);
+      } else {
+        setError('Failed to initiate filing process');
+      }
+    } catch (error) {
+      console.error('Error initiating filing:', error);
+      setError(error.response?.data?.message || 'Failed to initiate filing process');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -92,12 +117,21 @@ const Dashboard = () => {
                 </select>
               </div>
 
+              {error && (
+                <div className="text-red-500 text-sm mt-2">
+                  {error}
+                </div>
+              )}
+
               {selectedGstin && (
                 <button
                   onClick={handleFileNow}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-md mt-2"
+                  disabled={isLoading}
+                  className={`w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-md mt-2 ${
+                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  File Now {dueMonth ? `- Due for ${dueMonth}` : ''}
+                  {isLoading ? 'Processing...' : `File Now ${dueMonth ? `- Due for ${dueMonth}` : ''}`}
                 </button>
               )}
             </div>

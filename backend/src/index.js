@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import addGST from "./routes/user_add.js";
 import express from "express";
 import cors from "cors";
+import verificationRouter from "./routes/verification.js";
 
 
 const app=express();
@@ -18,6 +19,8 @@ app.use(cors({
 
 
 app.use('/api',addGST);
+
+app.use('/api/filling',verificationRouter);
 
 app.listen(process.env.PORT, () => {
     console.log("Server is running in port:"+process.env.PORT);
